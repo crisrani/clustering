@@ -1,0 +1,1375 @@
+---
+title: "TFM - Aplicación de Técnicas Clustering para caracterizar Burnout y Salud Mental de enfermeras "
+author: "Cristina Fernanda Vaca Orellana"
+date: '`r format(Sys.Date(),"%e de %B, %Y")`'
+output:
+  pdf_document: 
+    toc: yes
+    toc_depth: 4
+    latex_engine: xelatex
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: yes
+params:
+  
+  folder.data: "C:/Users/Usuario/OneDrive - Universidad Tecnica del Norte/Doctorado/Master/TFM"
+  file: "DatosBurnout.sav"
+---
+
+\pagebreak
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = NULL,
+                      warning = FALSE, message = FALSE, 
+                      fig.align="center", cache = TRUE)
+```
+
+
+```{r libraries, include=FALSE}
+install.packages("DataExplorer", repos = "http://cran.us.r-project.org")
+install.packages("skimr", repos = "http://cran.us.r-project.org")
+install.packages("foreign", repos = "http://cran.us.r-project.org")
+install.packages("class", repos = "http://cran.us.r-project.org")
+install.packages("KableExtra", repos = "http://cran.us.r-project.org")
+install.packages("gmodels", repos = "http://cran.us.r-project.org")
+install.packages("tm", repos = "http://cran.us.r-project.org")
+install.packages("ggplot2",repos = "http://cran.us.r-project.org")
+install.packages("nortest",repos = "http://cran.us.r-project.org")
+install.packages("cluster",repos = "http://cran.us.r-project.org")
+install.packages("mclust",repos = "http://cran.us.r-project.org")
+install.packages("factoextra",repos = "http://cran.us.r-project.org")
+install.packages("gridExtra",repos = "http://cran.us.r-project.org")
+install.packages("clustertend",repos = "http://cran.us.r-project.org")
+install.packages("hopkins",repos = "http://cran.us.r-project.org")
+install.packages("NbClust",repos = "http://cran.us.r-project.org" )
+
+```
+
+
+```{r}
+library(knitr)
+library(foreign) # Importación de archivos spss
+library(skimr)   # Genera mini-gráfica de histograma, así como un resumen completo por variables, pensado especialmente para verlo en pantalla y no para generar informes finales.
+#library(nycflights13)
+library(DataExplorer)#Resumen EDA
+library(kableExtra)
+library(nortest)# contrastar si un conjunto de datos se ajustan o no a una distribución normal
+library(stats)
+library(cluster)
+library(mclust)
+#library(cluster)
+library(gridExtra)
+library(factoextra)
+library(dplyr)
+library(dunn.test)
+library(clustertend)
+library(hopkins)
+library(NbClust)
+library(readxl)
+library(C50)
+library(caret)
+library(tidyverse)
+library(gmodels)
+#library(ggplot2)
+#library(class)#Knn
+#library(gmodels)
+#library(tm)
+#library(kableExtra)
+#library(e1071)
+#library(kernlab)
+#library(prediction)
+#library(ROCR)
+#library(caret)
+#library(magrittr)
+library(randomForest)
+#library(neuralnet)
+#library(dummies)
+
+```
+
+
+## Citaciones 
+```{r}
+citation("DataExplorer")
+citation("ggplot2")
+citation("foreign")
+citation("skimr")
+citation("nortest")
+citation("stats")
+citation("gridExtra")
+citation("factoextra")
+citation("dplyr")
+citation("cluster")
+citation("dunn.test")
+citation("clustertend")
+citation("NbClust")
+citation("readxl")
+citation("tidyverse")
+citation("caret")
+citation("C50")
+citation("gmodels")
+citation("randomForest")
+```
+
+\pagebreak
+
+# Introducción
+
+El clustering es una técnica de análisis de datos que permite agrupar objetos en 
+función de sus características similares (Bishop, 2006). Se podrían utilizar métodos 
+de clustering para identificar patrones comunes en los factores de riesgo que se 
+asocian con el Burnout y la salud mental de las enfermeras durante la pandemia de 
+COVID-19. El análisis y posterior evaluación de los algoritmos de clustering se ha 
+convertido en una técnica eficaz para realizar la tarea de clasificar y predecir 
+datos (Ghosal et al., 2020). Además, el uso de esta técnica ha permitido caracterizar 
+diferentes tipos de usuarios en salud (Lefèvre et al., 2014). 
+
+# Objetivo general
+1.	Identificar patrones y agrupaciones de factores de riesgo asociados con el Burnout 
+y salud mental en enfermeras de la Zona 1 de Ecuador en tiempos de pandemia COVID-19 
+mediante la aplicación de técnicas de clustering.
+
+## Objetivos específicos
+1.1.	Obtener los datos del estado de Burnout y salud mental en las enfermeras de 
+la zona 1 de Ecuador a través de encuestas en línea realizadas por docentes universitarios 
+autores del proyecto.
+
+# Datos
+Los datos se obtuvieron del proyecto “Ansiedad, depresión, estrés postraumático y 
+dimensiones de Burnout en profesionales de enfermería en la Zona 1 en la pandemia 
+de COVID-19” año 2021. Consta de 782 observaciones realizadas en personal de enfermería 
+de Hospitales segundo nivel de atención y Unidades operativas de primer nivel de atención, 
+la base de datos se encuentra procesada con la identificación de los principales 
+factores del síndrome de Burnout y salud mental. 
+
+El número referencial de enfermeras en la Zona 1 que comprende las provincias de Imbabura, 
+Carchi, Esmeraldas y Sucumbíos son de alrededor de 1300 (Coordinación Zonal 1-Salud, 2019).
+
+```{r}
+TecClus <- read.spss("C:/Users/Usuario/OneDrive - Universidad Tecnica del Norte/Doctorado/Master/TFM/DatosBurnout.sav", to.data.frame = TRUE)
+
+```
+# Análisis exploratorio
+
+Resumen de exploratorio específicos del conjunto de datos y visualización
+
+```{r}
+#introduce(TecClus)
+#skim(TecClus)
+
+#jpeg("Fig1.jpeg")
+plot_intro(TecClus)
+#dev.off()
+
+```
+## Datos faltantes o perdidos
+
+La base de datos no tiene valores faltantes
+
+```{r}
+plot_missing(TecClus)
+```
+
+
+```{r}
+# Valores NA: comprobación
+table(is.na(TecClus))
+
+```
+El dataset `TecClus` está formado por `r dim(TecClus)[2]` variables con `r dim(TecClus)[1]` registros, no contiene valores NA, por tanto no tenemos valores faltantes.
+
+## Transformación de variables
+
+Para visualizar distribuciones de frecuencia para todas las características discretas, primero cambiamos el tipo de variables a factor.
+
+```{r}
+TecClus$EstadoCivil<-as.factor(TecClus$EstadoCivil)
+TecClus$NivelEstudio<-as.factor(TecClus$NivelEstudio)
+TecClus$ProvinciaUnidadSalud<-as.factor(TecClus$ProvinciaUnidadSalud)
+TecClus$UnidadesSalud<-as.factor(TecClus$UnidadesSalud)
+TecClus$Servicio<-as.factor(TecClus$Servicio)
+TecClus$RolProfesional<-as.factor(TecClus$RolProfesional)
+TecClus$Turnos<-as.factor(TecClus$Turnos)
+TecClus$CondicionLaboral<-as.factor(TecClus$CondicionLaboral)
+TecClus$DiasAislamiento<-as.factor(TecClus$DiasAislamiento)
+TecClus$HospitalizadoaCOVID19<-as.factor(TecClus$HospitalizadoaCOVID19)
+TecClus$ApoyoPsicoPandemia<-as.factor(TecClus$ApoyoPsicoPandemia)
+TecClus$NeceApoyoPsicoPandemia<-as.factor(TecClus$NeceApoyoPsicoPandemia)
+TecClus$CreeEnfNeceApoyPsicoPand<-as.factor(TecClus$CreeEnfNeceApoyPsicoPand)
+TecClus$COVID19<-as.factor(TecClus$COVID19)
+
+TecClus$Edad<-as.numeric(TecClus$Edad)
+TecClus$Genero<-as.numeric(TecClus$Genero)
+TecClus$EstadoCivil<-as.numeric(TecClus$EstadoCivil)
+TecClus$NivelEstudio<-as.numeric(TecClus$NivelEstudio)
+TecClus$ProvinciaUnidadSalud<-as.numeric(TecClus$ProvinciaUnidadSalud)
+TecClus$UnidadesSalud<-as.numeric(TecClus$UnidadesSalud)
+TecClus$COVID19<-as.numeric(TecClus$COVID19)
+TecClus$Servicio<-as.numeric(TecClus$Servicio)
+TecClus$RolProfesional<-as.numeric(TecClus$RolProfesional)
+TecClus$AniosExperiencia<-as.numeric(TecClus$AniosExperiencia)
+TecClus$Turnos<-as.numeric(TecClus$Turnos)
+TecClus$CondicionLaboral<-as.numeric(TecClus$CondicionLaboral)
+TecClus$DiasAislamiento<-as.numeric(TecClus$DiasAislamiento)
+TecClus$HospitalizadoaCOVID19<-as.numeric(TecClus$HospitalizadoaCOVID19)
+TecClus$ApoyoPsicoPandemia<-as.numeric(TecClus$ApoyoPsicoPandemia)
+TecClus$NeceApoyoPsicoPandemia<-as.numeric(TecClus$NeceApoyoPsicoPandemia)
+TecClus$CreeEnfNeceApoyPsicoPand<-as.numeric(TecClus$CreeEnfNeceApoyPsicoPand)
+TecClus$ClasSumaAnsiedad<-as.numeric(TecClus$ClasSumaAnsiedad)
+TecClus$ClasSumaDepresion<-as.numeric(TecClus$ClasSumaDepresion)
+TecClus$ClasSumaAgotamientoEmocional<-as.numeric(TecClus$ClasSumaAgotamientoEmocional)
+TecClus$ClasSumaDespersonalizacion<-as.numeric(TecClus$ClasSumaDespersonalizacion)
+TecClus$ClasSumaRealizacionPersonal<-as.numeric(TecClus$ClasSumaRealizacionPersonal)
+TecClus$ClasSumaPostraumatico<-as.numeric(TecClus$ClasSumaPostraumatico)
+TecClus$PresenciaTrastornoEstresPostraumatico<-as.numeric(TecClus$PresenciaTrastornoEstresPostraumatico)
+TecClus$PresenciaAgotamientoEmocional<-as.numeric(TecClus$PresenciaAgotamientoEmocional)
+TecClus$PresenciaDespersonalizacion<-as.numeric(TecClus$PresenciaDespersonalizacion)
+TecClus$PresenciaRealizacionPersonal<-as.numeric(TecClus$PresenciaRealizacionPersonal)
+TecClus$PresenciaAnsiedad<-as.numeric(TecClus$PresenciaAnsiedad)
+TecClus$PresenciaDepresion<-as.numeric(TecClus$PresenciaDepresion)
+TecClus$ContactoCovidRecat<-as.numeric(TecClus$ContactoCovidRecat)
+TecClus$ExperienciaAntesPandemia<-as.numeric(TecClus$ExperienciaAntesPandemia)
+TecClus$IndiciosBurnoutRP<-as.numeric(TecClus$IndiciosBurnoutRP)
+TecClus$IndiciosBurnoutD<-as.numeric(TecClus$IndiciosBurnoutD)
+TecClus$IndiciosBurnoutAE<-as.numeric(TecClus$IndiciosBurnoutAE)
+TecClus$SíntomasBurnout<-as.numeric(TecClus$SíntomasBurnout)
+
+
+#Frecuencias cruzadas entre edad y género - Tabla 2 informe
+prop.table(table(TecClus$Edad,TecClus$Genero))   
+```
+
+## Distribuciones 
+
+Con las variables transformadas correctamente procedemos a graficar las frecuencias de 
+las variables tipo factor e histogramas de las variables discretas.
+
+```{r}
+#Gráficos de barras
+#jpeg("Fig3.jpeg")
+plot_bar(TecClus)
+#dev.off()
+
+#Gráfica de histogramas
+#jpeg("Fig4.jpeg")
+par(mfrow=c(1,3))
+hist(TecClus$Evitacion, col="gray", main="Evitación", xlab="")
+hist(TecClus$Hiperactivacion, col="gray", main="Hiperactivación", xlab="")
+hist(TecClus$Intrusion, col="gray", main="Hiperactivación", xlab="")
+#dev.off()
+
+```
+
+## Pruebas de normalidad
+
+Se especifica un dataframe de las variables numéricas y su gráfica.
+
+```{r}
+#Test de Normalidad - variables discretas
+lillie.test(TecClus$Evitacion)
+lillie.test(TecClus$Hiperactivacion)
+lillie.test(TecClus$Intrusion)
+
+```
+
+## Análisis descriptivo
+
+### Frecuencias datos sociodemográficos
+
+```{r}
+# Edad
+prop.table(table(TecClus$Edad))
+# Género
+prop.table(table(TecClus$Genero))
+# Estado civil
+prop.table(table(TecClus$EstadoCivil))
+# Provincias unidades de salud 
+prop.table(table(TecClus$ProvinciaUnidadSalud))
+# Unidades de salud
+prop.table(table(TecClus$UnidadesSalud))
+# Servicio
+prop.table(table(TecClus$Servicio))
+# Rol profesional
+prop.table(table(TecClus$RolProfesional))
+# Turnos
+prop.table(table(TecClus$Turnos))
+# Condición laboral
+prop.table(table(TecClus$CondicionLaboral))
+# Años de experiencia
+prop.table(table(TecClus$AniosExperiencia))
+# Experiencia antes de la pandemia
+prop.table(table(TecClus$ExperienciaAntesPandemia))
+# Positivo Covid 19
+prop.table(table(TecClus$COVID19))
+# Apoyo plsicológico durante la pandemia
+prop.table(table(TecClus$ApoyoPsicoPandemia))
+# Necesita apoyo psicológico
+prop.table(table(TecClus$NeceApoyoPsicoPandemia))
+# Cree necesitar apoyo psicológico
+prop.table(table(TecClus$CreeEnfNeceApoyPsicoPand))
+# Contacto con personas COVID-19
+prop.table(table(TecClus$ContactoCovidRecat))
+```
+
+
+### Test de asociación y de diferencia de medias 
+
+Análisis descriptivo entre los factores de riesgo de síndrome de Burnout y 
+variables de alteraciones de salud mental - Género
+
+```{r}
+#Femenino =1, masculino = 2
+#Frecuencias
+prop.table(table(TecClus$Genero,TecClus$ClasSumaAgotamientoEmocional))
+prop.table(table(TecClus$Genero,TecClus$ClasSumaAnsiedad))
+prop.table(table(TecClus$Genero,TecClus$ClasSumaDespersonalizacion))
+prop.table(table(TecClus$Genero,TecClus$ClasSumaRealizacionPersonal))
+prop.table(table(TecClus$Genero,TecClus$ClasSumaDepresion))
+prop.table(table(TecClus$Genero,TecClus$ClasSumaPostraumatico))
+
+#Independencia
+chisq.test(TecClus$Genero,TecClus$ClasSumaAgotamientoEmocional)
+chisq.test(TecClus$Genero,TecClus$ClasSumaDespersonalizacion)
+chisq.test(TecClus$Genero,TecClus$ClasSumaRealizacionPersonal)
+chisq.test(TecClus$Genero,TecClus$ClasSumaAnsiedad)
+chisq.test(TecClus$Genero,TecClus$ClasSumaDepresion)
+chisq.test(TecClus$Genero,TecClus$ClasSumaPostraumatico)
+
+#Medias
+kruskal.test(TecClus$Genero,TecClus$ClasSumaAgotamientoEmocional)
+kruskal.test(TecClus$Genero,TecClus$ClasSumaDespersonalizacion)
+kruskal.test(TecClus$Genero,TecClus$ClasSumaRealizacionPersonal)
+kruskal.test(TecClus$Genero,TecClus$ClasSumaAnsiedad)
+kruskal.test(TecClus$Genero,TecClus$ClasSumaDepresion)
+kruskal.test(TecClus$Genero,TecClus$ClasSumaPostraumatico)
+
+```
+
+Análisis descriptivo entre los factores de riesgo de síndrome de Burnout y 
+variables de alteraciones de salud mental - Experiencia en años
+
+```{r}
+prop.table(table(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaAgotamientoEmocional))
+prop.table(table(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaAnsiedad))
+prop.table(table(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaDespersonalizacion))
+prop.table(table(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaRealizacionPersonal))
+prop.table(table(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaDepresion))
+prop.table(table(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaPostraumatico))
+
+
+#Independencia
+chisq.test(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaAgotamientoEmocional)
+chisq.test(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaDespersonalizacion)
+chisq.test(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaRealizacionPersonal)
+chisq.test(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaAnsiedad)
+chisq.test(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaDepresion)
+chisq.test(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaPostraumatico)
+
+#Medias
+modelo<-kruskal.test(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaAgotamientoEmocional)
+kruskal.test(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaDespersonalizacion)
+kruskal.test(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaRealizacionPersonal)
+kruskal.test(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaAnsiedad)
+kruskal.test(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaDepresion)
+kruskal.test(TecClus$ExperienciaAntesPandemia,TecClus$ClasSumaPostraumatico)
+
+#Corrección de Bonferroni (agotamiento personal)
+with(TecClus,dunn.test(ClasSumaAgotamientoEmocional,ExperienciaAntesPandemia,method = "Bonferroni"))
+
+#Corrección de Bonferroni (Despersonalización)
+with(TecClus,dunn.test(ClasSumaDespersonalizacion,ExperienciaAntesPandemia,method = "Bonferroni"))
+
+#Corrección de Bonferroni (Despersonalización)
+with(TecClus,dunn.test(ClasSumaAnsiedad,ExperienciaAntesPandemia,method = "Bonferroni"))
+
+#Corrección de Bonferroni (Despersonalización)
+with(TecClus,dunn.test(ClasSumaDepresion,ExperienciaAntesPandemia,method = "Bonferroni"))
+
+```
+
+Análisis descriptivo entre los factores de riesgo de síndrome de Burnout y variables 
+de alteraciones de salud mental - Servicio
+
+```{r}
+prop.table(table(TecClus$Servicio,TecClus$ClasSumaAgotamientoEmocional))
+prop.table(table(TecClus$Servicio,TecClus$ClasSumaAnsiedad))
+prop.table(table(TecClus$Servicio,TecClus$ClasSumaDespersonalizacion))
+prop.table(table(TecClus$Servicio,TecClus$ClasSumaRealizacionPersonal))
+prop.table(table(TecClus$Servicio,TecClus$ClasSumaDepresion))
+prop.table(table(TecClus$Servicio,TecClus$ClasSumaPostraumatico))
+
+#Independencia
+chisq.test(TecClus$Servicio,TecClus$ClasSumaAgotamientoEmocional)
+chisq.test(TecClus$Servicio,TecClus$ClasSumaDespersonalizacion)
+chisq.test(TecClus$Servicio,TecClus$ClasSumaRealizacionPersonal)
+chisq.test(TecClus$Servicio,TecClus$ClasSumaAnsiedad)
+chisq.test(TecClus$Servicio,TecClus$ClasSumaDepresion)
+chisq.test(TecClus$Servicio,TecClus$ClasSumaPostraumatico)
+
+#Medias
+kruskal.test(TecClus$Servicio,TecClus$ClasSumaAgotamientoEmocional)
+kruskal.test(TecClus$Servicio,TecClus$ClasSumaDespersonalizacion)
+kruskal.test(TecClus$Servicio,TecClus$ClasSumaRealizacionPersonal)
+kruskal.test(TecClus$Servicio,TecClus$ClasSumaAnsiedad)
+kruskal.test(TecClus$Servicio,TecClus$ClasSumaDepresion)
+kruskal.test(TecClus$Servicio,TecClus$ClasSumaPostraumatico)
+```
+
+Análisis descriptivo entre los factores de riesgo de síndrome de Burnout y variables 
+de alteraciones de salud mental - Turnos
+
+```{r}
+prop.table(table(TecClus$Turnos,TecClus$ClasSumaAgotamientoEmocional))
+prop.table(table(TecClus$Turnos,TecClus$ClasSumaAnsiedad))
+prop.table(table(TecClus$Turnos,TecClus$ClasSumaDespersonalizacion))
+prop.table(table(TecClus$Turnos,TecClus$ClasSumaRealizacionPersonal))
+prop.table(table(TecClus$Turnos,TecClus$ClasSumaDepresion))
+prop.table(table(TecClus$Turnos,TecClus$ClasSumaPostraumatico))
+
+#Independencia
+chisq.test(TecClus$Turnos,TecClus$ClasSumaAgotamientoEmocional)
+chisq.test(TecClus$Turnos,TecClus$ClasSumaDespersonalizacion)
+chisq.test(TecClus$Turnos,TecClus$ClasSumaRealizacionPersonal)
+chisq.test(TecClus$Turnos,TecClus$ClasSumaAnsiedad)
+chisq.test(TecClus$Turnos,TecClus$ClasSumaDepresion)
+chisq.test(TecClus$Turnos,TecClus$ClasSumaPostraumatico)
+
+#Medias
+kruskal.test(TecClus$Turnos,TecClus$ClasSumaAgotamientoEmocional)
+kruskal.test(TecClus$Turnos,TecClus$ClasSumaDespersonalizacion)
+kruskal.test(TecClus$Turnos,TecClus$ClasSumaRealizacionPersonal)
+kruskal.test(TecClus$Turnos,TecClus$ClasSumaAnsiedad)
+kruskal.test(TecClus$Turnos,TecClus$ClasSumaDepresion)
+kruskal.test(TecClus$Turnos,TecClus$ClasSumaPostraumatico)
+```
+
+Análisis descriptivo entre los factores de riesgo de síndrome de Burnout y variables 
+de alteraciones de salud mental - Edad
+
+```{r}
+prop.table(table(TecClus$Edad,TecClus$ClasSumaAgotamientoEmocional))
+prop.table(table(TecClus$Edad,TecClus$ClasSumaAnsiedad))
+prop.table(table(TecClus$Edad,TecClus$ClasSumaDespersonalizacion))
+prop.table(table(TecClus$Edad,TecClus$ClasSumaRealizacionPersonal))
+prop.table(table(TecClus$Edad,TecClus$ClasSumaDepresion))
+prop.table(table(TecClus$Edad,TecClus$ClasSumaPostraumatico))
+
+#Independencia
+chisq.test(TecClus$Edad,TecClus$ClasSumaAgotamientoEmocional)
+chisq.test(TecClus$Edad,TecClus$ClasSumaDespersonalizacion)
+chisq.test(TecClus$Edad,TecClus$ClasSumaRealizacionPersonal)
+chisq.test(TecClus$Edad,TecClus$ClasSumaAnsiedad)
+chisq.test(TecClus$Edad,TecClus$ClasSumaDepresion)
+chisq.test(TecClus$Edad,TecClus$ClasSumaPostraumatico)
+
+#Medias
+kruskal.test(TecClus$Edad,TecClus$ClasSumaAgotamientoEmocional)
+kruskal.test(TecClus$Edad,TecClus$ClasSumaDespersonalizacion)
+kruskal.test(TecClus$Edad,TecClus$ClasSumaRealizacionPersonal)
+kruskal.test(TecClus$Edad,TecClus$ClasSumaAnsiedad)
+kruskal.test(TecClus$Edad,TecClus$ClasSumaDepresion)
+kruskal.test(TecClus$Edad,TecClus$ClasSumaPostraumatico)
+
+#Corrección de Bonferroni (agotamiento personal)
+with(TecClus,dunn.test(ClasSumaAgotamientoEmocional, Edad,method = "bonferroni"))
+
+#Corrección de Bonferroni (despersonalización)
+with(TecClus,dunn.test(ClasSumaDespersonalizacion, Edad,method = "bonferroni"))
+
+#Corrección de Bonferroni (realización personal)
+with(TecClus,dunn.test(ClasSumaRealizacionPersonal, Edad,method = "bonferroni"))
+
+#Corrección de Bonferroni (ansiedad)
+with(TecClus,dunn.test(ClasSumaAnsiedad, Edad,method = "bonferroni"))
+
+#Corrección de Bonferroni (realización personal)
+with(TecClus,dunn.test(ClasSumaDepresion, Edad,method = "bonferroni"))
+
+
+```
+
+Análisis descriptivo entre los factores de riesgo de síndrome de Burnout y variables 
+de alteraciones de salud mental - Area COVID
+
+```{r}
+prop.table(table(TecClus$COVID19,TecClus$ClasSumaAgotamientoEmocional))
+prop.table(table(TecClus$COVID19,TecClus$ClasSumaAnsiedad))
+prop.table(table(TecClus$COVID19,TecClus$ClasSumaDespersonalizacion))
+prop.table(table(TecClus$COVID19,TecClus$ClasSumaRealizacionPersonal))
+prop.table(table(TecClus$COVID19,TecClus$ClasSumaDepresion))
+prop.table(table(TecClus$COVID19,TecClus$ClasSumaPostraumatico))
+```
+
+
+## Análisis de correlación
+
+Para visualizar el mapa de calor de correlación para todas las variables numéricas:
+
+```{r}
+#jpeg("Fig2.jpeg")
+plot_correlation(na.omit(TecClus), type = "c")
+#dev.off()
+```
+## Outliers en variables numéricas discretas (gráficas)
+
+```{r}
+#jpeg("Fig5.jpeg")
+par(mfrow=c(1,3))
+boxplot(TecClus$Intrusion)
+boxplot(TecClus$Evitacion)
+boxplot(TecClus$Hiperactivacion)
+#dev.off()
+```
+
+# Técnicas clustering
+
+Explorando y preparando los datos, para implementar el algoritmos K-means todas 
+las variables deben ser tipo numéricas, de acuerdo a la literatura consultada, 
+se ha decidido eliminar varias variables que se duplicaban en información y hacían 
+ruido en el resultado final del algoritmo.
+
+```{r}
+str(TecClus)
+```
+
+
+## Kmeans
+
+Para el modelo, no tenemos valores faltantes o perdidos en el conjunto de datos, 
+tampoco outliers
+
+```{r}
+burnout <- TecClus[1:38]
+```
+
+### Estandarización y escalado de los datos 
+
+```{r}
+burnout_z <- as.data.frame(lapply(burnout, scale))
+
+```
+
+### Test para valorar los datos para cluster
+
+Los datos si son clusterizables 
+```{r}
+k.distancia<- get_dist(burnout_z,method = "euclidean")
+fviz_dist(k.distancia,gradient = list(low="blue", mid="white", high="red"))
+
+```
+
+### Número óptimo de clúster
+
+La agrupación en clústeres requiere que especifique de manera previa la cantidad de 
+clústeres que se extraerán. Con una gráfica de las sumas de cuadrados 
+totales dentro de los grupos frente al número de conglomerados en una solución de k-medias. 
+Una curva en el gráfico puede sugerir el número apropiado de grupos.
+fviz_nbclust() [en el paquete factoextra] 
+
+
+```{r}
+
+fviz_nbclust(x = burnout_z,FUNcluster = kmeans, method = 'wss' )
+
+```
+Con otro método:
+Número óptimo, a partir del estadístico GAP:
+
+```{r}
+gap_stat <- clusGap(x = burnout_z, FUN = kmeans, K.max = 20, nstart = 25, B = 50 )
+fviz_gap_stat(gap_stat)
+```
+
+
+### Métodos adicionales para calculo del número óptimo de cluster
+
+Se calculará al menos 15 métodos para cálculo de número óptimo de cluster para 
+tomar una decisión 
+
+
+```{r}
+# 1 = 6
+resnumclusterkl<-NbClust(burnout_z,distance="euclidean",method="kmeans", min.nc = 2, max.nc = 15,index = "kl")
+
+# 2 = 2
+resnumclusterch<-NbClust(burnout_z,distance="euclidean",method="kmeans", min.nc = 2, max.nc = 15,index = "ch")
+
+# 3 = 3
+resnumclusterh<-NbClust(burnout_z,distance="euclidean",method="kmeans", min.nc = 2, max.nc = 15,index = "hartigan")
+
+# 4 = 2
+resnumclustergap<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "gap")
+
+# 5 = 10
+resnumclustercindex<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "cindex")
+
+# 6 = 13
+resnumclusterdb<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "db")
+
+# 7 = 3
+resnumclustersil<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "silhouette")
+
+# 8 = 2
+resnumclusterduda<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "duda")
+
+# 9 = 2
+resnumclusterpseu<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "pseudot2")
+
+# 10 = 2
+resnumclusterbeale<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "beale")
+
+# 11 = 3
+resnumclusterratkowsky<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "ratkowsky")
+
+# 12 = 3
+resnumclusterball<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "ball")
+
+# 13 = 3
+resnumclusterptbiserial<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "ptbiserial")
+
+# 14 = 1
+resnumclusterfrey<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "frey")
+
+# 15 = 2
+resnumclustermcclain<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "mcclain")
+
+# 16 = 11
+resnumclusterdunn<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "dunn")
+
+# 17 = 3 y 4
+resnumclusterhubert<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "hubert")
+
+# 18 = 6
+resnumclustersdindex<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "sdindex")
+
+# 19 = 14
+resnumclustersdbw<-NbClust(burnout_z,distance="euclidean",method="kmeans",min.nc = 2, max.nc = 15, index = "sdbw")
+
+```
+
+### Aplicación del Kmeans
+
+El resultado del proceso de agrupación en clústeres k-means es una lista denominada 
+burnout_clusters_k que almacena las propiedades de cada uno de los cinco clústeres. 
+Veamos qué tan bien el algoritmo ha dividido los datos de caracterizar el burnout 
+en enfermeras.
+
+Se agruparán los datos en dos grupos (centros = 3,4 y 5). La función kmeans también tiene 
+una opción *nstart* que intenta múltiples configuraciones iniciales e informa sobre 
+la mejor. Por ejemplo, agregar nstart = 25 generará 25 configuraciones e informes 
+iniciales sobre la mejor.
+
+```{r}
+set.seed(23456)
+burnout_clusters_k <- kmeans(burnout_z, 5, iter.max = 1000, nstart = 25)
+print(burnout_clusters_k)
+```
+
+### Visualización de los cluster
+
+```{r}
+#jpeg("Fig7.jpeg")
+fviz_cluster(burnout_clusters_k, data = burnout_z)
+#dev.off()
+```
+Cuando vemos los resultados de (burnout_cluster_k), muestra información como, número de 
+clusters, centros de los cluster, tamaño de los clusters y suma 
+del cuadrado. 
+El objeto devuelto por la función kmeans() contiene entre otros datos: la media de 
+cada una de las variables para cada cluster (centers), un vector indicando a que 
+cluster se ha asignado cada observación (cluster), la suma de cuadrados interna de 
+cada cluster (withinss) y la suma total de cuadrados internos de todos los clusters 
+(tot.withinss).
+
+```{r}
+names(burnout_clusters_k)
+```
+
+Debido a que el número de conglomerados (k) debe establecerse antes de iniciar el 
+algoritmo, se presenta varios valores de k para examinar las 
+diferencias en los resultados. Se jecuta el proceso para 3, 4 y 5 clústeres.
+
+```{r}
+burnout_K2 <- kmeans(burnout_z, centers = 3, nstart = 25)
+burnout_K3 <- kmeans(burnout_z, centers = 4, nstart = 25)
+burnout_K4 <- kmeans(burnout_z, centers = 5, nstart = 25)
+```
+
+Visualización de los 4 modelos
+
+```{r}
+
+p1 <- fviz_cluster(burnout_K2, geom = "point", data = burnout_z) + ggtitle(" K = 3")
+p2 <- fviz_cluster(burnout_K3, geom = "point", data = burnout_z) + ggtitle(" K = 4")
+p3 <- fviz_cluster(burnout_K4, geom = "point", data = burnout_z) + ggtitle(" K = 5")
+
+#jpeg("Fig8.jpeg")
+grid.arrange(p1, p2, p3, nrow = 2)
+#dev.off()
+```
+
+### Evaluando el modelo
+
+Aquí, vemos los cinco grupos solicitados. El grupo más pequeño tiene 108 enfermeras y 
+el más grande 212 enfermeras.Sin examinar estos grupos con más cuidado, no sabremos 
+si esto indica o no un problema. Puede darse el caso de que la disparidad de tamaño 
+de los grupos indique algo real, como un gran grupo de enfermeras que se les ha 
+caracterizado de manera similar, o puede ser una casualidad aleatoria causada por 
+los centros iniciales de los grupos k-means.
+Sabremos más a medida que comencemos a observar la homogeneidad de cada grupo.
+
+```{r}
+burnout_clusters_k$size
+```
+
+Para mirar en profundidad a los conglomerados, se examina las coordenadas de los 
+centroides del conglomerado utilizando el componente *centers*, que es el siguiente 
+para los primeros cuatro intereses:
+
+```{r}
+burnout_clusters_k$centers
+```
+
+Las filas de la salida (etiquetadas del 1 al 5) se refieren a los cinco grupos, 
+mientras que los números en cada fila indican el valor promedio del grupo para 
+la variable  que figura en la parte superior de la columna. Como los valores están 
+estandarizados por puntaje z, los valores positivos están por encima del nivel 
+medio general para todas las enfermeras y los valores negativos están por debajo 
+de la media general.
+
+Al examinar si los grupos caen por encima o por debajo del nivel medio para cada
+categoría de burnout, podemos comenzar a notar patrones que distinguen los grupos 
+entre sí. En la práctica, esto implica imprimir los centros de los grupos y buscar 
+a través de ellos cualquier patrón o valor extremo, como un rompecabezas de búsqueda 
+de palabras pero con números. 
+
+### Mejorar del rendimiento del modelo 
+
+Debido a que el agrupamiento crea nueva información, el rendimiento de un algoritmo 
+de agrupamiento depende al menos de la calidad de los propios agrupamientos 
+como de lo que se hace con esa información. Con los 5 grupos, el algoritmo parece 
+funcionar bastante bien. Por lo tanto,se integra la información del los cluster 
+nuevamente al conjunto de datos completo. El objeto burnout_clusters_k creado por 
+la función kmeans() incluye un componente denominado cluster que contiene las 
+asignaciones de clúster para las 782 personas. 
+
+```{r}
+#Conjunto de datos escables 
+burnout_z$cluster<-burnout_clusters_k$cluster
+burnout_z$cluster<-as.factor(burnout_clusters_k$cluster)
+
+#Conjunto de datos completos sin escalar
+
+burnout$cluster<-burnout_clusters_k$cluster
+burnout$cluster<-as.factor(burnout_clusters_k$cluster)
+```
+
+### Pruebas de asociación y diferencia de medias con los datos originales 
+
+```{r}
+prop.table(table(burnout$cluster,burnout$ClasSumaAgotamientoEmocional))
+prop.table(table(burnout$cluster,burnout$ClasSumaAnsiedad))
+prop.table(table(burnout$cluster,burnout$ClasSumaDespersonalizacion))
+prop.table(table(burnout$cluster,burnout$ClasSumaRealizacionPersonal))
+prop.table(table(burnout$cluster,burnout$ClasSumaDepresion))
+prop.table(table(burnout$cluster,burnout$ClasSumaPostraumatico))
+
+#Independencia
+chisq.test(burnout$cluster,burnout$ClasSumaAgotamientoEmocional)
+chisq.test(burnout$cluster,burnout$ClasSumaAnsiedad)
+chisq.test(burnout$cluster,burnout$ClasSumaDespersonalizacion)
+chisq.test(burnout$cluster,burnout$ClasSumaRealizacionPersonal)
+chisq.test(burnout$cluster,burnout$ClasSumaDepresion)
+chisq.test(burnout$cluster,burnout$ClasSumaPostraumatico)
+chisq.test(burnout$cluster,burnout$Evitacion)
+chisq.test(burnout$cluster,burnout$Intrusion)
+chisq.test(burnout$cluster,burnout$Hiperactivacion)
+
+#Medias
+kruskal.test(burnout$cluster,burnout$ClasSumaAgotamientoEmocional)
+kruskal.test(burnout$cluster,burnout$ClasSumaAnsiedad)
+kruskal.test(burnout$cluster,burnout$ClasSumaDespersonalizacion)
+kruskal.test(burnout$cluster,burnout$ClasSumaRealizacionPersonal)
+kruskal.test(burnout$cluster,burnout$ClasSumaDepresion)
+kruskal.test(burnout$cluster,burnout$ClasSumaPostraumatico)
+kruskal.test(burnout$cluster,burnout$Evitacion)
+kruskal.test(burnout$cluster,burnout$Intrusion)
+kruskal.test(burnout$cluster,burnout$Hiperactivacion)
+
+#Corrección de Bonferroni (agotamiento personal)
+with(burnout,dunn.test(ClasSumaAgotamientoEmocional,cluster,method = "Bonferroni"))
+
+#Corrección de Bonferroni (Despersonalización)
+with(burnout,dunn.test(ClasSumaDespersonalizacion,cluster,method = "Bonferroni"))
+
+#Corrección de Bonferroni (Despersonalización)
+with(burnout,dunn.test(ClasSumaAnsiedad,cluster,method = "Bonferroni"))
+
+#Corrección de Bonferroni (Despersonalización)
+with(burnout,dunn.test(ClasSumaDepresion,cluster,method = "Bonferroni"))
+
+```
+Dados estos nuevos datos, podemos comenzar a examinar cómo la asignación de grupos 
+se relaciona con las características individuales. Por ejemplo, aquí está la información 
+personal de los primeros cinco enfermeras en los datos:
+
+```{r}
+burnout_z[1:5,c("cluster", "Genero", "EstadoCivil", "NivelEstudio")]
+```
+Usando la función de agregado (), también podemos ver las características demográficas 
+de los grupos. Esto se representa de la siguiente manera:
+
+También podemos ver las características de los grupos. 
+La ClasSumaAgotamientoEmocional se presenta más alto el valor de la media en el cluster 4
+
+
+
+```{r}
+aggregate(data = burnout_z, ClasSumaAgotamientoEmocional ~ cluster, mean)
+aggregate(data = burnout_z, ClasSumaDespersonalizacion ~ cluster, mean)
+aggregate(data = burnout_z, ClasSumaAnsiedad ~ cluster, mean)
+aggregate(data = burnout_z, ClasSumaDepresion ~ cluster, mean)
+aggregate(data = burnout_z, ClasSumaPostraumatico ~ cluster, mean)
+aggregate(data = burnout_z, ClasSumaRealizacionPersonal ~ cluster, mean)
+aggregate(data = burnout_z, Intrusion ~ cluster, mean)
+aggregate(data = burnout_z, Evitacion ~ cluster, mean)
+aggregate(data = burnout_z, Hiperactivacion ~ cluster, mean)
+```
+
+El número de aciertos y errores puede representarse también en modo de matriz de 
+confusión. A la hora de interpretar estas matrices, es importante recordar que el 
+clustering asigna las observaciones a clusters cuyo identificador no tiene que por 
+qué coincidir con la nomenclatura empleada para los grupos reales. Por ejemplo, 
+el grupo b podría haberse llamado en su lugar grupo 2 y haberse asignado al cluster 1. 
+Así pues, por cada fila de la matriz cabe esperar un valor alto (coincidencias) 
+para una de las posiciones y valores bajos en las otras (errores de clasificación), 
+pero no tienen por qué coincidir los nombres.
+
+
+## Hierarchical clustering
+
+Hierarchical clustering es una alternativa a los métodos de partitioning clustering 
+que no requiere que se pre-especifique el número de clusters. Los métodos que engloba 
+el hierarchical clustering se subdividen en dos tipos dependiendo de la estrategia 
+seguida para crear los grupos:
+
+Agglomerative clustering (bottom-up): el agrupamiento se inicia en la base del árbol, 
+donde cada observación forma un cluster individual. Los clusters se van combinado a 
+medida que la estructura crece hasta converger en una única “rama” central.
+
+Divisive clustering (top-down): es la estrategia opuesta al agglomerative clustering, 
+se inicia con todas las observaciones contenidas en un mismo cluster y se suceden 
+divisiones hasta que cada observación forma un cluster individual.
+
+En ambos casos, los resultados pueden representarse de forma muy intuitiva en una 
+estructura de árbol llamada dendrograma.
+
+
+```{r}
+# Matriz de distancias euclídeas
+mat_dist <- dist(x = burnout_z, method = "euclidean")
+
+```
+
+### Podar el árbol resultante.
+
+Método Complete
+
+
+```{r}
+# Método Completo 
+cluster_hc <- hclust(mat_dist, method = "complete") 
+
+#jpeg("Fig9.jpeg")
+plot(cluster_hc, hang = -1) # Con el argumento hang=-1, conseguimos que las etiquetas 
+#aparezcan alineadas por debajo de 0 en el eje
+#dev.off()
+
+```
+
+
+### Número óptimo de cluster
+
+Se utilizará en mismo número de cluster que en K-means, k=5 (con el mismo método de extracción)
+
+Una vez decidido el número de conglomerados (5, en este caso), éstos se obtienen 
+con la función cutree aplicada sobre el objeto clust obtenido con hclust.
+
+```{r}
+sol <- cutree(cluster_hc, k = 5)
+```
+
+La solución de la función cutree junto con los datos originales burnout se almacenará 
+en un objeto al que llamamos resccaa para su posterior análisis.
+
+```{r}
+burnouth <- burnout
+burnouth$conglomerado <- sol
+```
+Para mejoramiento del rendimiento del modelo y debido a la creación de la nueva 
+variable llamada conglomerado, se integra la información de los cluster al 
+conjunto de datos completo. Se analizará aplicando chisq.test (Chi) y diferencia 
+de medias con kruskal.test (KW).
+
+```{r}
+prop.table(table(burnouth$conglomerado,burnouth$ClasSumaAgotamientoEmocional))
+prop.table(table(burnouth$conglomerado,burnouth$ClasSumaAnsiedad))
+prop.table(table(burnouth$conglomerado,burnouth$ClasSumaDespersonalizacion))
+prop.table(table(burnouth$conglomerado,burnouth$ClasSumaRealizacionPersonal))
+prop.table(table(burnouth$conglomerado,burnouth$ClasSumaDepresion))
+prop.table(table(burnouth$conglomerado,burnouth$ClasSumaPostraumatico))
+
+#Independencia
+chisq.test(burnouth$conglomerado,burnouth$ClasSumaAgotamientoEmocional)
+chisq.test(burnouth$conglomerado,burnouth$ClasSumaAnsiedad)
+chisq.test(burnouth$conglomerado,burnouth$ClasSumaDespersonalizacion)
+chisq.test(burnouth$conglomerado,burnouth$ClasSumaRealizacionPersonal)
+chisq.test(burnouth$conglomerado,burnouth$ClasSumaDepresion)
+chisq.test(burnouth$conglomerado,burnouth$ClasSumaPostraumatico)
+chisq.test(burnouth$conglomerado,burnouth$Evitacion)
+chisq.test(burnouth$conglomerado,burnouth$Intrusion)
+chisq.test(burnouth$conglomerado,burnouth$Hiperactivacion)
+
+#Medias
+kruskal.test(burnouth$conglomerado,burnouth$ClasSumaAgotamientoEmocional)
+kruskal.test(burnouth$conglomerado,burnouth$ClasSumaAnsiedad)
+kruskal.test(burnouth$conglomerado,burnouth$ClasSumaDespersonalizacion)
+kruskal.test(burnouth$conglomerado,burnouth$ClasSumaRealizacionPersonal)
+kruskal.test(burnouth$conglomerado,burnouth$ClasSumaDepresion)
+kruskal.test(burnouth$conglomerado,burnouth$ClasSumaPostraumatico)
+kruskal.test(burnouth$conglomerado,burnouth$Evitacion)
+kruskal.test(burnouth$conglomerado,burnouth$Intrusion)
+kruskal.test(burnouth$conglomerado,burnouth$Hiperactivacion)
+
+#Corrección de Bonferroni (agotamiento personal)
+with(burnouth,dunn.test(ClasSumaAgotamientoEmocional,conglomerado,method = "Bonferroni"))
+
+#Corrección de Bonferroni (Despersonalización)
+with(burnouth,dunn.test(ClasSumaDespersonalizacion,conglomerado,method = "Bonferroni"))
+
+#Corrección de Bonferroni (Despersonalización)
+with(burnouth,dunn.test(ClasSumaAnsiedad,conglomerado,method = "Bonferroni"))
+
+#Corrección de Bonferroni (Despersonalización)
+with(burnouth,dunn.test(ClasSumaDepresion,conglomerado,method = "Bonferroni"))
+
+```
+
+
+
+
+### Método Average
+
+```{r}
+# Análisis de conglomerados con el método de ward
+clustera <- hclust(mat_dist, method = "average")
+
+# Obtención del dendograma
+plot(clustera, hang = -1)   
+
+# Solución obtenida
+sol2 <- cutree(clustera, k = 5)
+
+# Comparación con la solución obtenida con el método complete
+table(sol, sol2)
+```
+
+### Método ward.D2
+
+```{r}
+# Análisis de conglomerados con el método de ward
+clusterw <- hclust(mat_dist, method = "ward.D2")
+
+# Obtención del dendograma
+plot(clusterw, hang = -1)   
+
+
+# Solución obtenida
+sol3 <- cutree(clusterw, k = 5)
+
+# Comparación con la solución obtenida con los otros dos métodos
+table(sol, sol2, sol3)
+```
+### Matriz conefónica - verificar el árbol resultante
+
+```{r}
+# para el método "complete"
+matcof <- cophenetic(hclust(mat_dist, method = "complete")) # matriz cofenética
+cor(mat_dist, matcof) # coeficiente de correlación
+
+# para el método "average"
+matcof1 <- cophenetic(hclust(mat_dist, method = "average")) # matriz cofenética
+cor(mat_dist, matcof1) # coeficiente de correlación
+
+# para el método "ward.D2"
+matcof2 <- cophenetic(hclust(mat_dist, method = "ward.D2")) # matriz cofenética
+cor(mat_dist, matcof2) # coeficiente de correlación
+
+
+```
+
+De acuerdo al coefiente de correlación método mejor explicado es con el average
+
+Una vez creado el dendrograma, hay que evaluar hasta qué punto su estructura refleja 
+las distancias originales entre observaciones. Una forma de hacerlo es empleando el 
+coeficiente de correlación entre las distancias cophenetic del dendrograma 
+(altura de los nodos) y la matriz de distancias original. Cuanto más cercano es el 
+valor a 1, mejor refleja el dendrograma la verdadera similitud entre las observaciones. 
+Valores superiores a 0.75 suelen considerarse como buenos. Esta medida puede 
+emplearse como criterio de ayuda para escoger entre los distintos métodos de linkage. 
+En R, la función cophenetic() calcula las distancias cophenetic de un hierarchical clustering.
+
+Referencia: https://rpubs.com/Joaquin_AR/310338
+
+
+### Cortar el árbol para generar los clusters
+
+Además de representar en un dendrograma la similitud entre observaciones, se tiene 
+que poder identificar el número de clusters creados y qué observaciones forman parte 
+de cada uno. Si se realiza un corte horizontal a una determinada altura del dendrograma, 
+el número de ramas que sobrepasan (en sentido ascendente) dicho corte se corresponde 
+con el número de clusters. 
+
+El de agrupaciones será k=5
+
+```{r}
+plot(cluster_hc, hang = -1)
+abline(h=13, col="red")
+```
+Si el corte se hiciera en otro punto distinto, el número de grupos podría ser diferente, por ejemplo:
+
+```{r}
+#jpeg("Fig10.jpeg")
+par(mfrow=c(1,2))
+plot(cluster_hc, hang = -1)
+abline(h=12, col="red")
+plot(cluster_hc, hang = -1)
+abline(h=13, col="red")
+#dev.off()
+```
+
+# Algortimos Machine Learning
+
+## Decisión Tree
+
+
+Lectura del archivo .sav
+
+```{r}
+
+TecML <- read_excel("C:/Users/Usuario/OneDrive - Universidad Tecnica del Norte/Doctorado/Master/TFM/TecML.xlsx")
+```
+
+### Datos normalizados  
+
+Transformación de variables a numéricas 
+
+```{r}
+TecML$Edad<-as.numeric(TecML$Edad)
+TecML$Genero<-as.numeric(TecML$Genero)
+TecML$EstadoCivil<-as.numeric(TecML$EstadoCivil)
+TecML$NivelEstudio<-as.numeric(TecML$NivelEstudio)
+TecML$ProvinciaUnidadSalud<-as.numeric(TecML$ProvinciaUnidadSalud)
+TecML$UnidadesSalud<-as.numeric(TecML$UnidadesSalud)
+TecML$COVID19<-as.numeric(TecML$COVID19)
+TecML$Servicio<-as.numeric(TecML$Servicio)
+TecML$RolProfesional<-as.numeric(TecML$RolProfesional)
+TecML$AniosExperiencia<-as.numeric(TecML$AniosExperiencia)
+TecML$Turnos<-as.numeric(TecML$Turnos)
+TecML$CondicionLaboral<-as.numeric(TecML$CondicionLaboral)
+TecML$DiasAislamiento<-as.numeric(TecML$DiasAislamiento)
+TecML$HospitalizadoaCOVID19<-as.numeric(TecML$HospitalizadoaCOVID19)
+TecML$ApoyoPsicoPandemia<-as.numeric(TecML$ApoyoPsicoPandemia)
+TecML$NeceApoyoPsicoPandemia<-as.numeric(TecML$NeceApoyoPsicoPandemia)
+TecML$CreeEnfNeceApoyPsicoPand<-as.numeric(TecML$CreeEnfNeceApoyPsicoPand)
+TecML$ClasSumaAnsiedad<-as.numeric(TecML$ClasSumaAnsiedad)
+TecML$ClasSumaDepresion<-as.numeric(TecML$ClasSumaDepresion)
+TecML$ClasSumaAgotamientoEmocional<-as.numeric(TecML$ClasSumaAgotamientoEmocional)
+TecML$ClasSumaDespersonalizacion<-as.numeric(TecML$ClasSumaDespersonalizacion)
+TecML$ClasSumaRealizacionPersonal<-as.numeric(TecML$ClasSumaRealizacionPersonal)
+TecML$ClasSumaPostraumatico<-as.numeric(TecML$ClasSumaPostraumatico)
+TecML$PresenciaTrastornoEstresPostraumatico<-as.numeric(TecML$PresenciaTrastornoEstresPostraumatico)
+TecML$PresenciaAgotamientoEmocional<-as.numeric(TecML$PresenciaAgotamientoEmocional)
+TecML$PresenciaDespersonalizacion<-as.numeric(TecML$PresenciaDespersonalizacion)
+TecML$PresenciaRealizacionPersonal<-as.numeric(TecML$PresenciaRealizacionPersonal)
+TecML$PresenciaAnsiedad<-as.numeric(TecML$PresenciaAnsiedad)
+TecML$PresenciaDepresion<-as.numeric(TecML$PresenciaDepresion)
+TecML$ContactoCovidRecat<-as.numeric(TecML$ContactoCovidRecat)
+TecML$ExperienciaAntesPandemia<-as.numeric(TecML$ExperienciaAntesPandemia)
+TecML$IndiciosBurnoutRP<-as.numeric(TecML$IndiciosBurnoutRP)
+TecML$IndiciosBurnoutD<-as.numeric(TecML$IndiciosBurnoutD)
+TecML$IndiciosBurnoutAE<-as.numeric(TecML$IndiciosBurnoutAE)
+TecML$SB<-as.factor(TecML$SB)
+```
+
+
+```{r}
+#se muestra el valor absoluto (tamaño muestral)  
+
+kable(as.data.frame(table(TecML$SB)),
+      col.names= c("TipoBUrnout", "Frecuencia"),
+      align= "cc")
+```
+
+
+
+En la normalización de los datos se utilizará una nueva función "normalize" 
+
+```{r}
+normalize <- function(x) {
+return ((x - min(x)) / (max(x) - min(x)))
+}
+```
+
+Al aplicar la función normalize para mínimos y máximos
+
+```{r}
+#Ahora la data normalizada consta de 37 variables numéricas
+TecML_n <- as.data.frame(lapply(TecML[2:38], normalize))
+```
+
+Para confirmar la normalización
+
+```{r}
+summary(TecML_n[,(ncol(TecML_n)-4):ncol(TecML_n)])
+```
+
+### Training y test
+
+Para la separación de los datos, el 75% para el training y el 25% para el test. Con 
+semilla aleatoria
+
+```{r}
+#Se planta la semilla
+set.seed(123)
+
+#Aplicación de la función sample() para training 75%
+TecML_tsample<-sample(1:nrow(TecML_n),size = 0.75*nrow(TecML_n), replace = FALSE)
+
+#Se asigna los nuevos valores al dataframe del training
+TecML_training<- TecML_n[TecML_tsample, ]
+
+
+#Aplicación de la función sample() para test 25%
+TecML_tessample<-sample(1:nrow(TecML_n),size = 0.25*nrow(TecML_n), replace = FALSE)
+
+#Se asigna los nuevos valores al dataframe del test
+TecML_test<- TecML_n[TecML_tessample, ]
+
+```
+
+En la transformación de datos se utilizará el data frame normalizado **TecML_n**.
+
+Para la división de datos para training 75% y test 25%, utilizará las variables 
+ya creadas **TecML_training** y **TecML_test**. 
+
+
+Almacenamiento de los labels de los subtipos de síndrome de Burnout - (variable SB)  
+“Si”, “No” en el vectores de training y test.
+
+```{r}
+
+#Para training
+TecML_training_labels<-TecML[TecML_tsample,1]
+
+#Para test
+TecML_test_labels<-TecML[TecML_tessample,1]
+
+```
+
+
+```{r}
+#Plantamos semilla
+set.seed(1234567)
+#Adicionamos la variable SB de train al data frame del training y del test
+SB<-TecML_training_labels
+TecML_training<-as.data.frame(cbind(TecML_training,SB))
+
+SB<-TecML_test_labels
+TecML_test<-as.data.frame(cbind(TecML_test,SB))
+
+```
+
+
+Los porcentajes que presentan las clases de los datos en training y test al parecer estan equilibrados
+
+```{r}
+#Datos en el training
+prop.table(table(TecML_training$SB))
+prop.table(table(TecML_test$SB))
+
+```
+### Entrenar el modelo - "tunear" diferentes valores de los hiperparámetros del algoritmo para posteriormente evaluar su rendimiento.
+
+```{r}
+#fijar la semilla para el clasificador
+set.seed(1234567)
+modeltree<- C5.0(TecML_training[-38],TecML_training$SB)
+modeltree
+```
+
+Detalles del árbol
+
+```{r}
+resumen<-summary(modeltree)
+resumen
+```
+El resultado anterior muestra las ramas en el árbol de decisión.
+Después del árbol, el resultado del resumen muestra una matriz de confusión, que
+nos indica los registros incorrectamente clasificados por el modelo.
+La salida de Errores de los datos de training da un primer resultado que hay que
+validar con los datos de test. Se observa que el modelo clasificó correctamente 
+los sin síntomas y con síntomas en todos los casos, con una tasa de error del 0.0 %. Un 
+(falsos positivos), mientras que 0 valores se clasificaron (falsos negativos).
+
+
+```{r}
+#jpeg("Fig11.jpeg")
+plot(modeltree)
+# dev.off()
+```
+### Predicción y Evaluación del algoritmo
+
+```{r}
+tree.predict<- predict(modeltree, TecML_test)
+```
+
+Esto crea un vector de valores de clase predichos, que podemos comparar con los 
+valores de clase reales utilizando la función CrossTable(). Establecer los parámetros 
+prop.c y prop.r en FALSE elimina los porcentajes de columnas y filas de la tabla. 
+El porcentaje restante (prop.t) indica la proporción de registros en la celda
+del total de registros:
+
+```{r}
+ct<- CrossTable(TecML_test$SB,tree.predict, prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, dnn = c('actual default', 'predicted default'))
+```
+
+```{r}
+cf<-confusionMatrix(tree.predict,TecML_test$SB, positive = "2")
+cf
+```
+
+
+```{r}
+modeltreeBoost10<-C5.0(TecML_training[-38], TecML_training$SB, trials=10)
+modeltreeBoost10
+```
+```{r}
+summary(modeltreeBoost10)
+```
+
+```{r}
+plot(modeltreeBoost10)
+```
+```{r}
+tree.predictboot10<- predict(modeltreeBoost10, TecML_test)
+ct<- CrossTable(TecML_test$SB,tree.predictboot10, prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, dnn = c('actual default', 'predicted default'))
+```
+
+## Random Forest. 
+
+Se explorará la opción de número de árboles n = 50, 100
+
+Datos normalizados y divididos en trainig y test
+
+La función randomForest() crea un conjunto de 500 árboles, donde cada uno de ellos 
+elige p (p) variables de forma aleatoria para cada árbol, donde p es el número 
+de variables en el conjunto de datos de entrenamiento.
+El objetivo de utilizar una gran cantidad de árboles es entrenar lo suficiente 
+para que cada variable tenga la oportunidad de aparecer en varios modelos. 
+Se necesita que la variable Y sea factor para que el método ejecutado sea classification, 
+de lo contrario se ejecuta regresion.
+Verificamos la variable de las clases como factor para obtener una clasificación.
+
+```{r}
+class(TecML_training$SB)
+```
+### 50 árboles
+
+```{r}
+set.seed(1234567)
+modelrf <- randomForest(SB ~ ., data = TecML_training, ntree=50)
+modelrf
+```
+El resultado indica que el bosque aleatorio incluyó 500 árboles y probó 14 variables en cada división
+
+
+```{r}
+#jpeg("Fig12.jpeg")
+plot(modelrf)
+#dev.off()
+```
+
+La línea negra representa el OOB (out of bag error), la línea roja es el error al 
+intentar predecir, y la línea verde es el error en la predicción.
+La importancia de las variables
+
+```{r}
+#jpeg("Fig13.jpeg")
+varImpPlot(modelrf)
+#dev.off()
+```
+Se presenta las variables de importancia que da el modelo, con su respectivo gráfico. 
+Además se muestra claramente que la Realización personal como la característica 
+o variable más importante, seguida de otras variables.
+El bosque aleatorio es un poderoso algoritmo utilizado para la clasificación en 
+la industria.
+
+#### Predicción y Evaluación del algoritmo
+
+```{r}
+predict.rf<- predict(modelrf,TecML_test[-38])
+confusionMatrix(TecML_test$SB, predict.rf)
+```
+
+### 100 árboles 
+
+
+```{r}
+set.seed(1234567)
+modelrf100 <- randomForest(SB ~ ., data = TecML_training, ntree=100)
+modelrf100
+```
+El resultado indica que el bosque aleatorio incluyó 500 árboles y probó 14 variables en cada división
+
+
+```{r}
+#jpeg("Fig12.jpeg")
+plot(modelrf100)
+#dev.off()
+```
+
+La línea negra representa el OOB (out of bag error), la línea roja es el error al 
+intentar predecir, y la línea verde es el error en la predicción.
+La importancia de las variables
+
+```{r}
+#jpeg("Fig13.jpeg")
+varImpPlot(modelrf100)
+#dev.off()
+```
+Se presenta las variables de importancia que da el modelo, con su respectivo gráfico. 
+Además se muestra claramente que la Realización personal como la característica 
+o variable más importante, seguida de otras variables.
+El bosque aleatorio es un poderoso algoritmo utilizado para la clasificación en 
+la industria.
+
+#### Predicción y Evaluación del algoritmo
+
+```{r}
+predict.rf100<- predict(modelrf100,TecML_test[-38])
+confusionMatrix(TecML_test$SB, predict.rf100)
+```
+
+Referencias 
+
+Lantz, B. (2015). Machine Learning with R - Third Edition [R]. Packt. https://github.com/PacktPublishing/Machine-Learning-with-R-Third-Edition (Obra 
+original publicada en 2019)
+
+Bishop CM. Pattern recognition and machine learning. New York: Springer; 2006. 738 p. 
+(Information science and statistics)
+
+https://rpubs.com/rdelgado/399475
+
+https://www.cienciadedatos.net/documentos/37_clustering_y_heatmaps#K-medoids_clustering_(PAM)
